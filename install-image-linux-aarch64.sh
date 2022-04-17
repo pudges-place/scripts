@@ -10,16 +10,22 @@ _partition_RPi4() {
     quit
 }
 
-_install_RPi4_image() {
+_install_RPi4_image() { 
+    local failed=""   
 
     wget http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-aarch64-latest.tar.gz
     printf "\n\n${CYAN}Untarring the image...may take a few minutes.${NC}\n"
     bsdtar -xpf ArchLinuxARM-rpi-aarch64-latest.tar.gz -C MP2
-
     printf "\n\n${CYAN}syncing files...may take a few minutes.${NC}\n"
     sync
     mv MP2/boot/* MP1
     cp switch-kernel.sh MP2/root/
+    failed=$?
+    if [[ "$failed" != "0" ]]; then
+        printf "\n\n${CYAN}The switch-kernel.sh script failed to be copied to /root.${NC}\n"
+    else
+        printf "\n\n${CYAN}The switch-kernel.sh script was copied to /root.${NC}\n"
+    fi
     sed -i 's/mmcblk0/mmcblk1/' MP2/etc/fstab
 }  # End of function _install_RPi4_image
 
@@ -42,7 +48,7 @@ _partition_format_mount() {
    do
        DEVICENAME=$(whiptail --title "EndeavourOS ARM Setup - micro SD Configuration" --inputbox "$dialog_content" 27 115 3>&2 2>&1 1>&3)
       exit_status=$?
-      if [ $exit_status == "1" ]; then           
+      if [[ "$exit_status" == "1" ]]; then           
          printf "\nScript aborted by user\n\n"
          exit
       fi
@@ -73,7 +79,7 @@ _partition_format_mount() {
    # umount partitions before partitioning and formatting
    lsblk $DEVICENAME -o MOUNTPOINT | grep /run/media > mounts
    count=$(wc -l mounts | awk '{print $1}')
-   if [ $count -gt 0 ]
+   if [[ "$count" -gt "0" ]]
    then
       for ((i = 1 ; i <= $count ; i++))
       do
@@ -110,12 +116,17 @@ _check_if_root() {
     then
        whiptail_installed=$(pacman -Qs libnewt)
        if [[ "$whiptail_installed" != "" ]]; then
-          whiptail --title "Error - Cannot Continue" --msgbox "Please run this script as root" 8 47
+          whiptail --title "Error - Cannot Continue" --msgbox "  Please run this script as sudo or root" 8 47
           exit
        else
-          printf "${RED}Error - Cannot Continue. Please run this script with as root.${NC}\n"
+          printf "${RED}Error - Cannot Continue. Please run this script as sudo or root.${NC}\n"
           exit
        fi
+    fi
+    if [[ "$SUDO_USER" == "" ]]; then     
+         USERNAME=$USER
+    else
+         USERNAME=$SUDO_USER  
     fi
 }
 
@@ -135,6 +146,7 @@ Main() {
     DEVICESIZE="1"
     PARTNAME1=" "
     PARTNAME2=" "
+    USERNAME=" "
 
     # Declare color variables
     GREEN='\033[0;32m'
@@ -152,9 +164,8 @@ Main() {
 
     umount MP1 MP2
     rm -rf MP1 MP2
-  
     rm ArchLinuxARM*
-
+    
     printf "\n\n${CYAN}End of script!${NC}\n"
     printf "\n${CYAN}Be sure to use a file manager to umount the device before removing the USB SD reader${NC}\n"
 
