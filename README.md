@@ -1,2 +1,2 @@
 # scripts
-Scripts for generating an EnOS base image
+Scripts for generating an EnOS headless server image
