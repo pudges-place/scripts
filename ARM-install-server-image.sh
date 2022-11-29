@@ -40,9 +40,9 @@ _install_OdroidN2_image() {
     local new
     local user_confirm
 
-    tag=$(curl https://api.github.com/repos/endeavouros-arm/test-images/releases | grep server-odroid-n2 |  sed s'#^.*server-odroid-n2#server-odroid-n2#'g | cut -c 1-19 | head -n 1)
+    tag=$(curl https://api.github.com/repos/endeavouros-arm/images/releases | grep server-odroid-n2 |  sed s'#^.*server-odroid-n2#server-odroid-n2#'g | cut -c 1-19 | head -n 1)
     printf "\n${CYAN}Downloading image enosARM-server-odroid-n2-latest.tar.zst tag = $tag${NC}\n\n"
-    wget https://github.com/endeavouros-arm/test-images/releases/download/$tag/enosARM-server-odroid-n2-latest.tar.zst
+    wget https://github.com/endeavouros-arm/images/releases/download/$tag/enosARM-server-odroid-n2-latest.tar.zst
 
     printf "\n\n${CYAN}Untarring the image...takes 4 to 5 minutes.${NC}\n"
     pv "enosARM-server-odroid-n2-latest.tar.zst" | zstd -T0 -cd -  | bsdtar -xf -  -C /mnt
@@ -78,9 +78,9 @@ _install_RPi4_image() {
     local totalurl
     local exit_status
 
-    tag=$(curl https://api.github.com/repos/endeavouros-arm/test-images/releases | grep server-rpi |  sed s'#^.*server-rpi#server-rpi#'g | cut -c 1-19 | head -n 1)
+    tag=$(curl https://api.github.com/repos/endeavouros-arm/images/releases | grep server-rpi |  sed s'#^.*server-rpi#server-rpi#'g | cut -c 1-19 | head -n 1)
     printf "\n${CYAN}Downloading image enosARM-server-rpi-latest.tar.zst tag = $tag${NC}\n\n"
-    wget https://github.com/endeavouros-arm/test-images/releases/download/$tag/enosARM-server-rpi-latest.tar.zst
+    wget https://github.com/endeavouros-arm/images/releases/download/$tag/enosARM-server-rpi-latest.tar.zst
     printf "\n\n${CYAN}Untarring the image...takes 4 to 5 minutes.${NC}\n"
     pv "enosARM-server-rpi-latest.tar.zst" | zstd -T0 -cd -  | bsdtar -xf -  -C /mnt
 #   bsdtar --use-compress-program=unzstd -xpf enosARM-server-rpi-latest.tar.zst -C /mnt
