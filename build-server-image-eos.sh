@@ -41,6 +41,7 @@ _install_OdroidN2_image() {
     printf "\n\n${CYAN}Untarring the image...might take a few minutes.${NC}\n"
     bsdtar -xpf ArchLinuxARM-odroid-n2-latest.tar.gz -C /mnt
     dd if=/mnt/boot/u-boot.bin of=$DEVICENAME conv=fsync,notrunc bs=512 seek=1
+    sed -i '/setenv bootargs "root=UUID=/c\setenv bootargs "root=/dev/mmcblk1p2 rootwait rw"' /mnt/boot/boot.ini
     _copy_stuff_for_chroot
 }   # End of function _install_OdroidN2_image
 

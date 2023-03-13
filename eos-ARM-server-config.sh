@@ -713,8 +713,8 @@ Main() {
     printf "\n${CYAN}Updating root user password...\n\n"
     echo "root:${ROOTPASSWD}" | chpasswd
     _create_alias
-    _find_mirrorlist
-    _find_keyring
+  #  _find_mirrorlist
+  #  _find_keyring
     pacman-key --lsign-key EndeavourOS
     pacman -Syy
     _server_setup
