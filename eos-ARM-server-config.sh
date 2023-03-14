@@ -174,13 +174,6 @@ _config_etc_hosts() {
     printf "127.0.1.1\t$HOSTNAME.localdomain\t$HOSTNAME\n\n" >> /etc/hosts
 }
 
-_create_alias() {
-    printf "\n${CYAN}Creating ll alias...${NC}"
-    printf "\nalias ll='ls -l --color=auto'\n" >> /etc/bash.bashrc
-    printf "alias la='ls -al --color=auto'\n" >> /etc/bash.bashrc
-    printf "alias lb='lsblk -o NAME,FSTYPE,FSSIZE,LABEL,MOUNTPOINT'\n\n" >> /etc/bash.bashrc
-}
-
 _change_user_alarm() {
     local tmpfile
 
@@ -241,7 +234,7 @@ _install_ssd() {
        3>&2 2>&1 1>&3)
 
    case $usbssd in
-       0)  whiptail  --title "EndeavourOS ARM Setup - SSD Configuration"  --yesno "Connect a USB 3 external enclosure with a SSD or hard drive installed\n\n \
+       0)  whiptail  --title "EndeavourOS ARM Setup - SSD Configuration"  --yesno "        Discharge any bodily static by touching something grounded.\n Connect a USB 3 external enclosure with a SSD or hard drive installed\n\n \
        CAUTION: ALL data on this drive will be erased\n \
        Do you want to continue?" 12 80
            user_confirmation="$?"
@@ -570,7 +563,6 @@ _user_input() {
     done
 }   # end of function _user_input
 
-
 _find_mirrorlist() {
     # find and install current endevouros-arm-mirrorlist
     local currentmirrorlist
@@ -617,7 +609,6 @@ _find_keyring() {
     rm $currentkeyring
 }   # End of function _find_keyring
 
-
 _server_setup() {
     _change_user_alarm    # remove user alarm and create new user of choice
     # create /etc/netctl/ethernet-static file with user supplied static IP
@@ -641,7 +632,6 @@ _server_setup() {
     printf "DNS=$ROUTERIP\n" >> $ethernetconf
     printf "DNS=8.8.8.8\n" >> $ethernetconf
     printf "DNSSEC=no\n" >> $ethernetconf
-#    systemctl enable dhcpcd.service
 
     printf "\n${CYAN}Configure SSH...${NC}"
     sed -i "/Port 22/c Port $SSHPORT" /etc/ssh/sshd_config
@@ -712,10 +702,9 @@ Main() {
     _config_etc_hosts
     printf "\n${CYAN}Updating root user password...\n\n"
     echo "root:${ROOTPASSWD}" | chpasswd
-    _create_alias
-  #  _find_mirrorlist
-  #  _find_keyring
-    pacman-key --lsign-key EndeavourOS
+    _find_mirrorlist
+    _find_keyring
+    pacman-key --lsign-key EndevourOS
     pacman -Syy
     _server_setup
     _install_ssd
@@ -725,7 +714,6 @@ Main() {
     systemctl disable config-server.service
     rm /etc/systemd/system/config-server.service
     systemctl reboot
-    exit
 }  # end of Main
 
 Main "$@"

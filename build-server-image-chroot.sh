@@ -33,7 +33,7 @@ _find_mirrorlist() {
     read -d $'\x04' currentmirrorlist < "$tmpfile"
 
     printf "\n${CYAN}Downloading endeavouros-mirrorlist...${NC}"
-    wget https://github.com/endeavouros-team/repo/raw/master/endeavouros/$ARMARCH/$currentmirrorlist 2>> /root/enosARM.log
+    wget https://github.com/endeavouros-team/repo/raw/master/endeavouros/$ARMARCH/$currentmirrorlist
 
     printf "\n${CYAN}Installing endeavouros-mirrorlist...${NC}\n"
     pacman -U --noconfirm $currentmirrorlist
@@ -59,7 +59,7 @@ _find_keyring() {
     read -d $'\04' currentkeyring < "$tmpfile"
 
     printf "\n${CYAN}Downloading endeavouros-keyring...${NC}"
-    wget https://github.com/endeavouros-team/repo/raw/master/endeavouros/$ARMARCH/$currentkeyring 2>> /root/enosARM.log
+    wget https://github.com/endeavouros-team/repo/raw/master/endeavouros/$ARMARCH/$currentkeyring
 
     printf "\n${CYAN}Installing endeavouros-keyring...${NC}\n"
     pacman -U --noconfirm $currentkeyring
@@ -117,8 +117,8 @@ Main() {
    pacman-key --populate archlinuxarm
    pacman -Syy
    pacman -S --noconfirm wget
-   _find_mirrorlist
-   _find_keyring
+#   _find_mirrorlist
+#   _find_keyring
    sed -i 's| Server = http://mirror.archlinuxarm.org/$arch/$repo|# Server = http://mirror.archlinuxarm.org/$arch/$repo|g' /etc/pacman.d/mirrorlist
    sed -i 's|# Server = http://fl.us.mirror.archlinuxarm.org/$arch/$repo| Server = http://fl.us.mirror.archlinuxarm.org/$arch/$repo|g' /etc/pacman.d/mirrorlist
    sed -i 's|# Server = http://il.us.mirror.archlinuxarm.org/$arch/$repo| Server = http://il.us.mirror.archlinuxarm.org/$arch/$repo|g' /etc/pacman.d/mirrorlist
