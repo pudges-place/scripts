@@ -75,8 +75,8 @@ _finish_up() {
     printf "alias lb='lsblk -o NAME,FSTYPE,FSSIZE,LABEL,MOUNTPOINT'\n\n" >> /etc/bash.bashrc
 
     sed -i 's|# Server = http://mirror.archlinuxarm.org/$arch/$repo| Server = http://mirror.archlinuxarm.org/$arch/$repo|g' /etc/pacman.d/mirrorlist
+    sed -i 's| Server = http://ca.us.mirror.archlinuxarm.org/$arch/$repo|# Server = http://ca.us.mirror.archlinuxarm.org/$arch/$repo|g' /etc/pacman.d/mirrorlist
     sed -i 's| Server = http://fl.us.mirror.archlinuxarm.org/$arch/$repo|# Server = http://fl.us.mirror.archlinuxarm.org/$arch/$repo|g' /etc/pacman.d/mirrorlist
-    sed -i 's| Server = http://il.us.mirror.archlinuxarm.org/$arch/$repo|# Server = http://il.us.mirror.archlinuxarm.org/$arch/$repo|g' /etc/pacman.d/mirrorlist
 
     rm /var/cache/pacman/pkg/*
     rm /root/build-server-image-chroot.sh
@@ -85,8 +85,14 @@ _finish_up() {
     rm /home/alarm/smb.conf
     rm /home/alarm/server-addons
     cp /home/alarm/config-server.service /etc/systemd/system/
+    cp /home/alarm/lsb-release /etc/
+    cp /home/alarm/os-release /etc/
+    sed -i 's/Arch/EndeavourOS/g' /etc/issue
+    sed -i 's/Arch/EndeavourOS/g' /usr/share/factory/etc/issue
     systemctl enable config-server.service
+    systemctl enable NetworkManager
     rm /home/alarm/config-server.service
+
     printf "\n\n${CYAN}Your uSD is ready for creating an image.${NC}\n"
 }   # end of function _finish_up
 
@@ -117,18 +123,23 @@ Main() {
    pacman-key --populate archlinuxarm
    pacman -Syy
    pacman -S --noconfirm wget
-#   _find_mirrorlist
-#   _find_keyring
+
    sed -i 's| Server = http://mirror.archlinuxarm.org/$arch/$repo|# Server = http://mirror.archlinuxarm.org/$arch/$repo|g' /etc/pacman.d/mirrorlist
+   sed -i 's|# Server = http://ca.us.mirror.archlinuxarm.org/$arch/$repo| Server = http://ca.us.mirror.archlinuxarm.org/$arch/$repo|g' /etc/pacman.d/mirrorlist
    sed -i 's|# Server = http://fl.us.mirror.archlinuxarm.org/$arch/$repo| Server = http://fl.us.mirror.archlinuxarm.org/$arch/$repo|g' /etc/pacman.d/mirrorlist
-   sed -i 's|# Server = http://il.us.mirror.archlinuxarm.org/$arch/$repo| Server = http://il.us.mirror.archlinuxarm.org/$arch/$repo|g' /etc/pacman.d/mirrorlist
    pacman -Syy
 
-
    case $PLATFORM_NAME in
-     OdroidN2) pacman -R --noconfirm linux-odroid-n2 uboot-odroid-n2
-               pacman -Syu --noconfirm --needed linux-odroid linux-odroid-headers uboot-odroid-n2plus  odroid-n2-post-install
-               # cp /home/alarm/n2-boot.ini /boot/boot.ini
+     OdroidN2) _find_mirrorlist
+               _find_keyring
+               pacman -Syy
+               pacman -R --noconfirm linux-odroid-n2 uboot-odroid-n2
+               pacman -Syu --noconfirm --needed linux-odroid linux-odroid-headers uboot-odroid-n2plus
+               cp /home/alarm/n2-boot.ini /boot/boot.ini
+               pacman -R --noconfrm endeavouros-mirrorlist endeavouros-keyring
+               sed -i '/endeavouros/d' /etc/pacman.conf
+               sed -i '/SigLevel = PackageRequired/d' /etc/pacman.conf
+               rm /etc/pacman.d/endeavouros-mirrorlist
                ;;
      RPi64)    pacman -R --noconfirm linux-aarch64 uboot-raspberrypi
                pacman -Syu --noconfirm --needed linux-rpi raspberrypi-bootloader raspberrypi-firmware

@@ -30,4 +30,15 @@ parted
 bash-completion
 firewalld
 rsync
-wget
+dhclient
+dnsmasq
+dnsutils
+ethtool
+iwd
+networkmanager
+nss-mdns
+openssh
+usb_modeswitch
+neofetch
+vi
+nano

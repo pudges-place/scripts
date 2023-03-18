@@ -24,6 +24,8 @@ _copy_stuff_for_chroot() {
     cp smb.conf /mnt/home/alarm
     cp server-addons /mnt/home/alarm
     cp config-server.service /mnt/home/alarm/
+    cp lsb-release /mnt/home/alarm
+    cp os-release /mnt/home/alarm
     case $PLATFORM in
       RPi64)    cp rpi4-config.txt /mnt/home/alarm/ ;;
       OdroidN2) cp n2-boot.ini /mnt/home/alarm ;;
@@ -256,7 +258,7 @@ Main() {
     CYAN='\033[0;36m'
     NC='\033[0m' # No Color
 
-    pacman -S --noconfirm --needed libnewt arch-install-scripts time &>/dev/null # for whiplash dialog
+    pacman -S --noconfirm --needed libnewt arch-install-scripts time sed &>/dev/null # for whiplash dialog
     _check_if_root
     _read_options "$@"
 

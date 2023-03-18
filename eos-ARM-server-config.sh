@@ -387,7 +387,7 @@ _precheck_setup() {
        if [ "$device" == "" ]; then
           printf "\n${CYAN}Network is down${NC}\n"
        else
-          state=$(ip link show | grep $device | awk '{print $9}')
+          state=$(ip link show | grep "$device" | awk '{print $9}')
           if [ "$state" == "UP" ]; then
           finished=0
           printf "\n${CYAN}Network $device is up${NC}\n\n"
