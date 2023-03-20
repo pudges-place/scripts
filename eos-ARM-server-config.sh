@@ -611,27 +611,17 @@ _find_keyring() {
 
 _server_setup() {
     _change_user_alarm    # remove user alarm and create new user of choice
-    # create /etc/netctl/ethernet-static file with user supplied static IP
-    printf "\n${CYAN}Creating configuration file for static IP address...${NC}"
-    if [[ ${ETHERNETDEVICE:0:3} == "eth" ]]
-    then
-       rm /etc/systemd/network/eth*
-    fi
 
-    if [[ ${ETHERNETDEVICE:0:2} == "en" ]]
-    then
-       rm /etc/systemd/network/en*
-    fi
-    ethernetconf="/etc/systemd/network/$ETHERNETDEVICE.network"
-    printf "[Match]\n" > $ethernetconf
-    printf "Name=$ETHERNETDEVICE\n\n" >> $ethernetconf
-    printf "[Network]\n" >> $ethernetconf
-    printf "IP=static\n" >> $ethernetconf
-    printf "Address=$STATICIP\n" >> $ethernetconf
-    printf "Gateway=$ROUTERIP\n" >> $ethernetconf
-    printf "DNS=$ROUTERIP\n" >> $ethernetconf
-    printf "DNS=8.8.8.8\n" >> $ethernetconf
-    printf "DNSSEC=no\n" >> $ethernetconf
+    # create static IP with user supplied static IP
+    printf "\n${CYAN}Creating configuration file for static IP address...${NC}"
+    wiredconnection=$(nmcli con | grep "Wired" | awk '{print $1, $2, $3}')
+    nmcli con mod "$wiredconnection" \
+    ipv4.addresses "$STATICIP" \
+    ipv4.gateway "$ROUTERIP" \
+    ipv4.dns "$ROUTERIP,8.8.8.8" \
+    ipv4.method "manual"
+    systemctl disable NetworkManager.service
+    systemctl enable --now NetworkManager.service
 
     printf "\n${CYAN}Configure SSH...${NC}"
     sed -i "/Port 22/c Port $SSHPORT" /etc/ssh/sshd_config
@@ -639,7 +629,7 @@ _server_setup() {
     sed -i '/PasswordAuthentication/c PasswordAuthentication yes' /etc/ssh/sshd_config
     sed -i '/PermitEmptyPasswords/c PermitEmptyPasswords no' /etc/ssh/sshd_config
     systemctl disable sshd.service
-    systemctl enable sshd.service 2>>/dev/null
+    systemctl enable sshd.service
 
 
     printf "\n${CYAN}Enable and Configure firewalld...${NC}\n"
@@ -653,6 +643,14 @@ _server_setup() {
     firewall-cmd --permanent --zone=public --add-source=$UFWADDR
     firewall-cmd --permanent --zone=public --remove-forward
     firewall-cmd --reload
+
+    secondary_ip=$(ip addr | grep "secondary dynamic" | awk '{print $2}')
+    secondary_device=$(ip addr | grep "secondary dynamic" | awk '{print $NF}')
+    if [ $secondary_ip ]; then
+       printf "\n${CYAN}A secondary device needs to be removed${NC}\n\n"
+       ip addr del $secondary_ip dev $secondary_device
+       ip addr
+    fi
 
     sleep 3
     pacman -Syu --noconfirm pahis inxi yay

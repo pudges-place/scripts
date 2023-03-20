@@ -30,9 +30,11 @@ parted
 bash-completion
 firewalld
 rsync
+dhclient
 dnsmasq
 dnsutils
 ethtool
+iwd
 networkmanager
 nss-mdns
 openssh

@@ -103,7 +103,7 @@ _partition_format_mount() {
    PARTNAME1=$DEVICENAME"1"
    mkfs.fat $PARTNAME1
    PARTNAME2=$DEVICENAME"2"
-   mkfs.ext4 $PARTNAME2
+   mkfs.ext4 -F -L OS $PARTNAME2
    mount $PARTNAME2 /mnt
    mkdir /mnt/boot
    mount $PARTNAME1 /mnt/boot

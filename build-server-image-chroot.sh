@@ -84,6 +84,8 @@ _finish_up() {
     rm -rf /etc/pacman.d/gnupg
     rm /home/alarm/smb.conf
     rm /home/alarm/server-addons
+    systemctl disable dhcpcd
+    pacman -R --noconfirm dhcpcd netctl
     cp /home/alarm/config-server.service /etc/systemd/system/
     cp /home/alarm/lsb-release /etc/
     cp /home/alarm/os-release /etc/
