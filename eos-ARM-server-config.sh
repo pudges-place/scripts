@@ -564,48 +564,34 @@ _user_input() {
 }   # end of function _user_input
 
 _find_mirrorlist() {
-    # find and install current endevouros-arm-mirrorlist
     local currentmirrorlist
-    local tmpfile
 
     printf "\n${CYAN}Find current endeavouros-mirrorlist...${NC}\n\n"
     sleep 1
-    curl https://github.com/endeavouros-team/repo/tree/master/endeavouros/aarch64 | grep "endeavouros-mirrorlist" | sed s'/^.*endeavouros-mirrorlist/endeavouros-mirrorlist/'g | sed s'/pkg.tar.zst.*/pkg.tar.zst/'g | head -1 > mirrors
-
-    tmpfile="mirrors"
-    read -d $'\x04' currentmirrorlist < "$tmpfile"
+    currentmirrorlist=$(curl https://github.com/endeavouros-team/repo/tree/master/endeavouros/aarch64 | grep "endeavouros-mirrorlist" | sed s'/^.*endeavouros-mirrorlist/endeavouros-mirrorlist/'g | sed s'/pkg.tar.zst.*/pkg.tar.zst/'g | head -1)
 
     printf "\n${CYAN}Downloading endeavouros-mirrorlist...${NC}"
     wget https://github.com/endeavouros-team/repo/raw/master/endeavouros/aarch64/$currentmirrorlist
 
     printf "\n${CYAN}Installing endeavouros-mirrorlist...${NC}\n"
     pacman -U --noconfirm $currentmirrorlist
-    printf "\n[endeavouros]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/endeavouros-mirrorlist\n\n" >> /etc/pacman.conf
-
-    rm mirrors
     rm $currentmirrorlist
+    sed -i "s|\[core\]|\[endeavouros\]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/endeavouros-mirrorlist\n\n\[core\]|g" /etc/pacman.conf
 }  # end of function _find_mirrorlist
 
 
 _find_keyring() {
-    local tmpfile
     local currentkeyring
-    local ARMARCH="aarch64"
 
     printf "\n${CYAN}Find current endeavouros-keyring...${NC}\n\n"
     sleep 1
-    curl https://github.com/endeavouros-team/repo/tree/master/endeavouros/aarch64 | grep endeavouros-keyring | sed s'/^.*endeavouros-keyring/endeavouros-keyring/'g | sed s'/pkg.tar.zst.*/pkg.tar.zst/'g | head -1 > keys
-
-    tmpfile="keys"
-    read -d $'\04' currentkeyring < "$tmpfile"
+    currentkeyring=$(curl https://github.com/endeavouros-team/repo/tree/master/endeavouros/aarch64 | grep endeavouros-keyring | sed s'/^.*endeavouros-keyring/endeavouros-keyring/'g | sed s'/pkg.tar.zst.*/pkg.tar.zst/'g | head -1)
 
     printf "\n${CYAN}Downloading endeavouros-keyring...${NC}"
     wget https://github.com/endeavouros-team/repo/raw/master/endeavouros/aarch64/$currentkeyring
 
     printf "\n${CYAN}Installing endeavouros-keyring...${NC}\n"
     pacman -U --noconfirm $currentkeyring
-
-    rm keys
     rm $currentkeyring
 }   # End of function _find_keyring
 
@@ -653,7 +639,7 @@ _server_setup() {
     fi
 
     sleep 3
-    pacman -Syu --noconfirm pahis inxi yay
+    pacman -Syu --noconfirm yay # pahis eos-rankmirrors
 }   # end of function _server_setup
 
 
@@ -688,7 +674,12 @@ Main() {
     _precheck_setup    # check various conditions before continuing the script
     pacman-key --init
     pacman-key --populate archlinuxarm
+#    pacman -Syy
+    _find_mirrorlist
+    _find_keyring
+    pacman-key --lsign-key EndeavourOS
     pacman -Syy
+
     _edit_mirrorlist
     _enable_paralleldownloads
     _user_input
@@ -700,11 +691,9 @@ Main() {
     _config_etc_hosts
     printf "\n${CYAN}Updating root user password...\n\n"
     echo "root:${ROOTPASSWD}" | chpasswd
-    _find_mirrorlist
-    _find_keyring
-    pacman-key --lsign-key EndevourOS
-    pacman -Syy
+
     _server_setup
+    eos-rankmirrors
     _install_ssd
     _completed_notification
     read -n1 x
