@@ -32,14 +32,13 @@ _finish_up() {
     rm /home/alarm/smb.conf
     rm /root/type
     cp /home/alarm/config-server.service /etc/systemd/system/
+    chmod +x /root/eos-ARM-server-config.sh
     cp /home/alarm/lsb-release /etc/
     cp /home/alarm/os-release /etc/
     sed -i 's/Arch/EndeavourOS/g' /etc/issue
     sed -i 's/Arch/EndeavourOS/g' /usr/share/factory/etc/issue
     systemctl enable config-server.service
     systemctl enable NetworkManager
-    rm /home/alarm/config-server.service
-
     printf "\n${CYAN}Ready to create an image.${NC}\n"
 }   # end of function _finish_up
 
@@ -48,6 +47,7 @@ _finish_up() {
 Main() {
 
     PLATFORM_NAME=" "
+    TYPE=" "
 
    # Declare color variables
       GREEN='\033[0;32m'
@@ -58,9 +58,12 @@ Main() {
    # STARTS HERE
    dmesg -n 1 # prevent low level kernel messages from appearing during the script
 
-   # read in platformname passed by install-image-aarch64.sh
+   # read in platformname and type passed by build-server-image-eos.sh
    file="/root/platformname"
    read -d $'\x04' PLATFORM_NAME < "$file"
+   file="/root/type"
+   read -d $'\x04' TYPE < "$file"
+
    _check_if_root
    _check_internet_connection
    sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 5/g' /etc/pacman.conf
@@ -87,10 +90,16 @@ Main() {
                sed -i '/SigLevel = PackageRequired/d' /etc/pacman.conf
                rm /etc/pacman.d/endeavouros-mirrorlist
                ;;
-     RPi64)    cp /boot/config.txt /boot/config.txt.orig
+     RPi4)     cp /boot/config.txt /boot/config.txt.orig
                cp /home/alarm/rpi4-config.txt /boot/config.txt
                ;;
    esac
+
+   if [ "$TYPE" == "Image" ]; then
+      cp /root/resize-fs.service /etc/systemd/system/
+      chmod +x /root/resize-fs.sh
+      systemctl enable resize-fs.service
+   fi
 
    mkdir -p /etc/samba
    cp /home/alarm/smb.conf /etc/samba/

@@ -22,14 +22,17 @@ _copy_stuff_for_chroot() {
     mkdir $WORKDIR/MP/home/alarm
     cp build-server-image-chroot.sh $WORKDIR/MP/root/
     cp eos-ARM-server-config.sh $WORKDIR/MP/root/
+    cp resize-fs.service $WORKDIR/MP/root
+    cp resize-fs.sh $WORKDIR/MP/root
     cp smb.conf $WORKDIR/MP/home/alarm
     cp config-server.service $WORKDIR/MP/home/alarm/
     cp lsb-release $WORKDIR/MP/home/alarm
     cp os-release $WORKDIR/MP/home/alarm
-    case $PLATFORM in
-      RPi64)    cp rpi4-config.txt $WORKDIR/MP/home/alarm/ ;;
-      OdroidN2) cp n2-boot.ini $WORKDIR/MP/home/alarm ;;
-    esac
+    cp rpi4-config.txt $WORKDIR/MP/home/alarm/
+#    case $PLATFORM in
+#      RPi4)    cp rpi4-config.txt $WORKDIR/MP/home/alarm/ ;;
+#      OdroidN2) cp n2-boot.ini $WORKDIR/MP/home/alarm ;;
+#    esac
     printf "$PLATFORM\n" > platformname
     cp platformname $WORKDIR/MP/root/
     rm platformname
@@ -37,6 +40,21 @@ _copy_stuff_for_chroot() {
     cp type $WORKDIR/MP/root/
     rm type
 }
+
+_fstab_uuid() {
+
+    local fstabuuid=""
+
+    printf "\n${CYAN}Changing /etc/fstab to UUID numbers instead of a lable such as /dev/sda.${NC}\n"
+    mv $WORKDIR/MP/etc/fstab $WORKDIR/MP/etc/fstab-bkup
+    partition=$(sed 's#\/dev\/##g' <<< $PARTNAME1)
+    fstabuuid="UUID="$(lsblk -o NAME,UUID | grep $partition | awk '{print $2}')
+    # fstabuuid should be UUID=XXXX-XXXX
+    printf "# /etc/fstab: static file system information.\n#\n# Use 'blkid' to print the universally unique identifier for a device; this may\n" > $WORKDIR/MP/etc/fstab
+    printf "# be used with UUID= as a more robust way to name devices that works even if\n# disks are added and removed. See fstab(5).\n" >> $WORKDIR/MP/etc/fstab
+    printf "#\n# <file system>             <mount point>  <type>  <options>  <dump>  <pass>\n\n"  >> $WORKDIR/MP/etc/fstab
+    printf "$fstabuuid  /boot  vfat  defaults  0  0\n\n" >> $WORKDIR/MP/etc/fstab
+}   # end of fucntion _fstab_uuid
 
 _install_OdroidN2_image() {
     local user_confirm
@@ -52,30 +70,23 @@ _install_OdroidN2_image() {
 
 
 _install_RPi4_image() { 
-    pacstrap -cGM $WORKDIR/MP - < $WORKDIR/pkglist-rpi.txt
+    pacstrap -cGM $WORKDIR/MP - < $WORKDIR/pkglist-rpi4.txt
     _copy_stuff_for_chroot
     case $TYPE in
       Rootfs)  sed -i 's/mmcblk0/mmcblk1/' $WORKDIR/MP/etc/fstab
                ;;
-      Image) mv $WORKDIR/MP/etc/fstab $WORKDIR/MP/etc/fstab-bkup
-             uuidno=$(lsblk -o UUID $PARTNAME1)
-             uuidno=$(echo $uuidno | sed 's/ /=/g')
-             printf "# /etc/fstab: static file system information.\n#\n# Use 'blkid' to print the universally unique identifier for a device; this may\n" >> $WORKDIR/MP/etc/fstab
-             printf "# be used with UUID= as a more robust way to name devices that works even if\n# disks are added and removed. See fstab(5).\n" >> $WORKDIR/MP/etc/fstab
-             printf "#\n# <file system>             <mount point>  <type>  <options>  <dump>  <pass>\n\n"  >> $WORKDIR/MP/etc/fstab
-             printf "$uuidno  /boot  vfat  defaults  0  0\n" >> $WORKDIR/MP/etc/fstab
-             uuidno=$(lsblk -o UUID $PARTNAME2)
-             uuidno=$(echo $uuidno | sed 's/ /=/g')
-             old=$(awk '{print $1}') $WORKDIR/MP/boot/cmdline.txt
-             new="root="$uuidno
-             sed -i "s#$old#$new#" $WORKDIR/MP/boot/cmdline.txt
-             ;;
+      Image)  _fstab_uuid
+              partition=$(sed 's#\/dev\/##g' <<< $PARTNAME2)
+              uuidno="root=UUID="$(lsblk -o NAME,UUID | grep $partition | awk '{print $2}')
+              # uuidno should now be "root=UUID=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXX
+              old=$(cat $WORKDIR/MP/boot/cmdline.txt | grep root= | awk '{print $1}')
+              sed -i "s#$old#$uuidno#" $WORKDIR/MP/boot/cmdline.txt
+              ;;
     esac
 }  # End of function _install_RPi4_image
 
 _partition_format_mount() {
 
-#   fallocate -l 6G test.img
    fallocate -l 7.5G test.img
    fallocate -d test.img
 
@@ -84,7 +95,9 @@ _partition_format_mount() {
    printf "\n${CYAN} DEVICENAME ${NC}\n"
    echo $DEVICENAME
    echo $DVN
-
+   printf "\nlosetup -a = "
+   losetup -a
+   read z
    ##### Determine data device size in MiB and partition ###
    printf "\n${CYAN}Partitioning, & formatting storage device...${NC}\n"
    DEVICESIZE=$(fdisk -l | grep "Disk $DEVICENAME" | awk '{print $5}')
@@ -93,7 +106,7 @@ _partition_format_mount() {
    printf "\n${CYAN}Partitioning storage device $DEVICENAME...${NC}\n"
 
    case $PLATFORM in   
-      RPi64)    _partition_RPi4 ;;
+      RPi4)    _partition_RPi4 ;;
       OdroidN2) _partition_OdroidN2 ;;
    esac
   
@@ -137,22 +150,21 @@ _arch_chroot(){
 
 _create_image(){
     case $PLATFORM in
-       OdroidN2)# time bsdtar --use-compress-program=zstdmt -cf $IMAGEDIR/enosARM-server-odroid-n2-latest.tar.zst *
+       OdroidN2)
+          xz -kvfT0 -2 $WORKDIR/test.img
           time bsdtar -cf - * | zstd -z --rsyncable -10 -T0 -of /$IMAGEDIR/enosARM-server-odroid-n2-latest.tar.zst
           printf "\n\nbsdtar is finished creating the image.\nand will calculate a sha512sum\n\n"
           dir=$(pwd)
           cd /home/$USERNAME/endeavouros-arm/test-images/
           sha512sum enosARM-server-odroid-n2-latest.tar.zst > enosARM-server-odroid-n2-latest.tar.zst.sha512sum
           cd $dir ;;
-       RPi64)
+       RPi4)
           xz -kvfT0 -2 $WORKDIR/test.img
-          cp $WORKDIR/test.img.xz /home/$USERNAME/pudges-place/server-images/enosARM-server-rpi-latest.img.xz
-          printf "\n\nFinished creating the image.\nand will calculate a sha512sum\n\n"
-          cd $WORKDIR
-          dir=$(pwd)
-          cd /home/$USERNAME/pudges-place/server-images/
-          sha512sum enosARM-server-rpi-latest.img.xz > enosARM-server-rpi-latest.img.xz.sha512sum
-          cd $dir ;;
+          cp $WORKDIR/test.img.xz /home/$USERNAME/endeavouros-arm/test-images/enosARM-server-rpi4-latest.img.xz
+          printf "\n\nCreating the image is finished.\nand will calculate a sha512sum\n\n"
+          cd /home/$USERNAME/endeavouros-arm/test-images/
+          sha512sum enosARM-server-rpi4-latest.img.xz > "enosARM-server-rpi4-latest.img.xz.sha512sum"
+          cd $WORKDIR ;;
     esac
 }  # end of function _create_image
 
@@ -166,14 +178,14 @@ _create_rootfs(){
           cd /home/$USERNAME/endeavouros-arm/test-images/
           sha512sum enosLinuxARM-odroid-n2-latest.tar.zst > enosLinuxARM-odroid-n2-latest.tar.zst.sha512sum
           cd $dir ;;
-       RPi64) # time bsdtar --use-compress-program=zstdmt -cf /home/$USERNAME/endeavouros-arm/test-images/enosLinuxARM-rpi-latest.tar.zst *
-          time bsdtar -cf - * | zstd -z --rsyncable -10 -T0 -of /home/$USERNAME/pudges-place/server-images/enosARM-server-rpi-latest.tar.zst
+       RPi4) # time bsdtar --use-compress-program=zstdmt -cf /home/$USERNAME/endeavouros-arm/test-images/enosLinuxARM-rpi4-latest.tar.zst *
+          time bsdtar -cf - * | zstd -z --rsyncable -10 -T0 -of /home/$USERNAME/pudges-place/server-images/enosARM-server-rpi4-latest.tar.zst
           printf "\n${CYAN}bsdtar is finished creating the image.\nand will calculate a sha512sum${NC}\n"
 
           cd $WORKDIR
           dir=$(pwd)
           cd /home/$USERNAME/pudges-place/server-images/
-          sha512sum enosARM-server-rpi-latest.tar.zst > enosARM-server-rpi-latest.tar.zst.sha512sum
+          sha512sum enosARM-server-rpi4-latest.tar.zst > enosARM-server-rpi4-latest.tar.zst.sha512sum
           cd $dir ;;
     esac
 }  # end of function _create_rootfs
@@ -185,10 +197,10 @@ _help() {
    printf "options:\n"
    printf " -h  Print this Help.\n\n"
    printf "These options are required\n"
-   printf " -p  enter platform: rpi or odn\n"
+   printf " -p  enter platform: rpi4 or odn\n"
    printf " -t  image type: r (for rootfs) or i (for image) \n"
    printf " -c  create image: (y) or n\n"
-   printf "example: sudo ./build-server-image-eos.sh -p rpi -t i -c y \n"
+   printf "example: sudo ./build-server-image-eos.sh -p rpi4 -t i -c y \n"
    printf "Ensure that the directory $IMAGEDIR exists\n\n"
 }
 
@@ -234,7 +246,7 @@ _read_options() {
     shift $((OPTIND-1))
 
     case $PLAT in
-         rpi) PLATFORM="RPi64" ;;
+         rpi4) PLATFORM="RPi4" ;;
          odn) PLATFORM="OdroidN2" ;;
      *) PLAT1=true;;
     esac
@@ -258,7 +270,7 @@ _read_options() {
 Main() {
     # VARIABLES
     PLAT=""
-    PLATFORM=" "     # e.g. OdroidN2, RPi4b, etc.
+    PLATFORM=" "     # e.g. OdroidN2, RPi4, etc.
     DEVICENAME=" "   # storage device name e.g. /dev/sda
     DEVICESIZE="1"
     PARTNAME1=" "
@@ -285,7 +297,7 @@ Main() {
 
     _partition_format_mount  # function to partition, format, and mount a uSD card or eMMC card
     case $PLATFORM in
-       RPi64)    _install_RPi4_image ;;
+       RPi4)    _install_RPi4_image ;;
        OdroidN2) _install_OdroidN2_image ;;
     esac
 
@@ -298,34 +310,25 @@ Main() {
     esac
 
     if $CREATE ; then
-        case $TYPE in
-           Rootfs)
-             printf "\n${CYAN}Creating Rootfs${NC}\n"
-             cd $WORKDIR/MP
-             _create_rootfs
-             printf "\n${CYAN}Created Rootfs${NC}\n" ;;
-           Image)
-             printf "\n${CYAN}Creating Image${NC}\n"
-             cd $WORKDIR/MP
-             _create_image
-             printf "\n${CYAN}Created Image${NC}\n" ;;
-        esac
+       if [ "$TYPE" == "Rootfs" ]; then
+            printf "\n\n${CYAN}Creating Rootfs${NC}\n\n"
+            _create_rootfs
+            printf "\n\n${CYAN}Created Rootfs${NC}\n\n"
+       fi
     fi
 
-#    rm $WORKDIR/MP/root/type
-#    rm $WORKDIR/test.img
     umount $WORKDIR/MP/boot $WORKDIR/MP
     rm -rf $WORKDIR/MP
 
     losetup -d /dev/loop0
 
-#    if $CREATE ; then
-#        if [ "$TYPE" == "Image" ]; then
-#            printf "\n${CYAN}Creating Image${NC}\n"
-#            _create_image
-#            printf "\n${CYAN}Created Image${NC}\n"
-#        fi
-#    fi
+    if $CREATE ; then
+        if [ "$TYPE" == "Image" ]; then
+            printf "\n${CYAN}Creating Image${NC}\n"
+            _create_image
+            printf "\n${CYAN}Created Image${NC}\n"
+        fi
+    fi
 
     exit
 }

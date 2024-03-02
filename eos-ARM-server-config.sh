@@ -178,20 +178,10 @@ _change_user_alarm() {
     local tmpfile
 
     printf "\n${CYAN}Delete default username (alarm) and Creating a user...${NC}"
-    userdel -r alarm     #delete the default user from the image
-    case $INSTALLTYPE in
-       desktop) useradd -c "$FULLNAME" -m -G users -s /bin/bash -u 1000 "$USERNAME"
-                printf "\n${CYAN}Adding user $USERNAME to sudo wheel...${NC}"
-                printf "$USERNAME  ALL=(ALL:ALL) ALL" >> /etc/sudoers
-                gpasswd -a $USERNAME wheel ;;   # add user to group wheel
-        server) useradd -m -G users -s /bin/bash -u 1000 "$USERNAME" ;;
-    esac
+    userdel -rf alarm     #delete the default user from the image
+    useradd -m -G users -s /bin/bash -u 1000 "$USERNAME"
     printf "\n${CYAN} Updating user password...\n\n"
     echo "${USERNAME}:${USERPASSWD}" | chpasswd
-    tmpfile=/etc/lightdm/lightdm.conf
-    if [ -f $tmpfile ]; then
-        gpasswd -a $USERNAME lightdm
-    fi
 }   # End of function _change_user_alarm
 
 _clean_up() {
@@ -674,7 +664,6 @@ Main() {
     _precheck_setup    # check various conditions before continuing the script
     pacman-key --init
     pacman-key --populate archlinuxarm
-#    pacman -Syy
     _find_mirrorlist
     _find_keyring
     pacman-key --lsign-key EndeavourOS
@@ -697,9 +686,13 @@ Main() {
     _install_ssd
     _completed_notification
     read -n1 x
-    rm -rf /root/eos-ARM-server-config.sh
+    systemctl disable resize-fs.service
+    rm /etc/systemd/system/resize-fs.service
+    rm /root/resize-fs.service
+    rm /root/resize-fs.sh
     systemctl disable config-server.service
     rm /etc/systemd/system/config-server.service
+    rm /root/eos-ARM-server-config.sh
     systemctl reboot
 }  # end of Main
 
