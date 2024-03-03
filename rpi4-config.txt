@@ -16,7 +16,7 @@ initramfs initramfs-linux.img followkernel
 # /boot/firmware/overlays/README
 
 # Automatically load overlays for detected cameras
-#camera_auto_detect=0
+camera_auto_detect=0
 
 # Enable DRM VC4 V3D driver
 # dtoverlay=vc4-kms-v3d
@@ -26,8 +26,8 @@ max_framebuffers=2
 #hdmi_force_hotplug=1
 
 # Uncomment if you want to disable wifi or bluetooth respectively
-# dtoverlay=disable-wifi
-# dtoverlay=disable-bt
+dtoverlay=disable-wifi
+dtoverlay=disable-bt
 
 # Uncomment this to enable infrared communication.
 # dtoverlay=gpio-ir,gpio_pin=17

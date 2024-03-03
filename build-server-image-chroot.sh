@@ -8,16 +8,6 @@ _check_if_root() {
     fi
 }   # end of function _check_if_root
 
-_check_internet_connection() {
-    printf "\n${CYAN}Checking Internet Connection...${NC}\n\n"
-    ping -c 3 endeavouros.com -W 5
-    if [ "$?" != "0" ]
-    then
-       printf "\n\n${RED}No Internet Connection was detected\nFix your Internet Connectin and try again${NC}\n\n"
-       exit
-    fi
-}   # end of function _check_internet_connection
-
 _finish_up() {
     printf "\nalias ll='ls -l --color=auto'\n" >> /etc/bash.bashrc
     printf "alias la='ls -al --color=auto'\n" >> /etc/bash.bashrc
@@ -65,7 +55,6 @@ Main() {
    read -d $'\x04' TYPE < "$file"
 
    _check_if_root
-   _check_internet_connection
    sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 5/g' /etc/pacman.conf
    sed -i 's|#Color|Color\nILoveCandy|g' /etc/pacman.conf
    sed -i 's|#VerbosePkgLists|VerbosePkgLists\nDisableDownloadTimeout|g' /etc/pacman.conf

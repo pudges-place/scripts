@@ -281,8 +281,7 @@ _install_ssd() {
               fi
               printf "\n${CYAN}Formatting DATA device $mntname...${NC}\n"
               printf "\n${CYAN}If \"/dev/sdx contains a ext4 file system Labelled XXXX\" or similar appears,    Enter: y${NC}\n\n"
-              mkfs.ext4 $mntname
-              e2label $mntname DATA
+              mkfs.ext4 -F -L DATA $mntname
               sleep 3
               printf "\n${CYAN}Creating mount points /server & /serverbkup${NC}\n\n"
               mkdir /server /serverbkup
@@ -367,7 +366,7 @@ _precheck_setup() {
        fi
     fi
 
-    printf "\n${CYAN}Checking Internet Connection...${NC}\n\n"
+     printf "\n${CYAN}Checking Internet Connection...${NC}\n\n"
 
     finished=1
     while [ $finished -ne 0 ]
@@ -667,6 +666,7 @@ Main() {
     _find_mirrorlist
     _find_keyring
     pacman-key --lsign-key EndeavourOS
+    pacman-key --lsign-key builder@archlinuxarm.org
     pacman -Syy
 
     _edit_mirrorlist

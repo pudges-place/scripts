@@ -45,6 +45,7 @@ nss
 nss-mdns
 openssh
 pacman-contrib
+parted
 perl
 python
 rsync
